@@ -77,7 +77,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
-    fontSize: 16,
+    fontSize: 13,
     cursor: "pointer",
     transition: "background 0.15s",
   },

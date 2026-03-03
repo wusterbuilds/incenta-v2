@@ -32,7 +32,7 @@ const styles = {
     marginBottom: 6,
   },
   name: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 600 as const,
     color: colors.primary,
     lineHeight: 1.3,
@@ -61,7 +61,7 @@ const styles = {
     color: colors.secondary,
   },
   value: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 700 as const,
     color: colors.primary,
     marginBottom: 4,

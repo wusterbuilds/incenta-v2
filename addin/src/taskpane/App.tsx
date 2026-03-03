@@ -31,37 +31,25 @@ const styles: Record<string, React.CSSProperties> = {
     background: colors.white,
     fontFamily: fonts.sans,
   },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "12px 16px",
-    background: colors.primary,
-    color: colors.white,
-    flexShrink: 0,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: 600,
-    letterSpacing: 0.5,
-  },
-  subtitle: {
-    fontSize: 11,
-    opacity: 0.7,
-    fontWeight: 400,
-  },
   auditArea: {
     padding: "10px 12px 0",
     flexShrink: 0,
   },
   projectBanner: {
-    padding: "8px 12px",
-    background: colors.offWhite,
+    padding: "12px 14px",
+    background: colors.primary,
+    color: colors.white,
     borderRadius: 8,
-    fontSize: 12,
-    color: colors.secondary,
+    fontSize: 13,
+    fontWeight: 600,
     marginBottom: 8,
-    lineHeight: 1.4,
+    lineHeight: 1.5,
+  },
+  projectDetail: {
+    fontSize: 11,
+    fontWeight: 400,
+    opacity: 0.75,
+    marginTop: 2,
   },
   content: {
     flex: 1,
@@ -76,16 +64,7 @@ function generateId(): string {
 }
 
 const App: React.FC = () => {
-  const [messages, setMessages] = React.useState<ChatMessage[]>([
-    {
-      id: generateId(),
-      role: "assistant",
-      type: "text",
-      content:
-        "Hello! I'm Incenta, your real estate incentive advisor. I can analyze your pro forma to find tax credits, abatements, and grants you may qualify for.\n\nClick **Run Incentive Audit** to start, or ask me anything about development incentives.",
-      timestamp: Date.now(),
-    },
-  ]);
+  const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isAuditing, setIsAuditing] = React.useState(false);
   const [proFormaContext, setProFormaContext] = React.useState<ProFormaContext | null>(null);
@@ -156,7 +135,7 @@ const App: React.FC = () => {
           setScenarioCol(targetCol);
         } catch {
           ctx = {
-            address: "1234 Example Blvd, Anytown, CO",
+            address: "1234 Quebec St, Denver, CO",
             totalUnits: 200,
             purchasePrice: 7_000_000,
             renovationBudget: 600_000,
@@ -345,9 +324,19 @@ const App: React.FC = () => {
       id: generateId(),
       role: "assistant",
       type: "text",
-      content: `Written ${uniqueChanges.length} incentive adjustments to column **${targetCol}**: ${cellList}\n\n${annotationStatus}\n\nYour original column F is preserved. Check column **${targetCol}** on the **Stable Monthly** sheet to compare.`,
+      content: `Written ${uniqueChanges.length} incentive adjustments to column **${targetCol}**.\n\n${annotationStatus}\n\nYour original column F is preserved. Here's the financial breakdown:`,
       timestamp: Date.now(),
     });
+
+    addMessage({
+      id: generateId(),
+      role: "assistant",
+      type: "net_change_summary",
+      content: "Net change summary",
+      data: pendingScenario,
+      timestamp: Date.now(),
+    });
+
     setPendingScenario(null);
   }, [pendingScenario, scenarioCol, addMessage]);
 
@@ -400,21 +389,15 @@ const App: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <header style={styles.header}>
-        <div>
-          <div style={styles.title}>Incenta</div>
-          <div style={styles.subtitle}>Incentive Advisor</div>
-        </div>
-      </header>
-
       <div style={styles.auditArea}>
         {proFormaContext && (
           <div style={styles.projectBanner}>
-            📍 {proFormaContext.address} — {proFormaContext.totalUnits} units,{" "}
-            ${(proFormaContext.purchasePrice / 1_000_000).toFixed(1)}M purchase
-            {scenarioCol && (
-              <span style={{ opacity: 0.7 }}> · Next scenario: col {scenarioCol}</span>
-            )}
+            <div>{proFormaContext.address}</div>
+            <div style={styles.projectDetail}>
+              {proFormaContext.totalUnits} units &middot;{" "}
+              ${(proFormaContext.purchasePrice / 1_000_000).toFixed(1)}M purchase
+              {scenarioCol && <> &middot; Scenario col {scenarioCol}</>}
+            </div>
           </div>
         )}
         <IncentiveAuditButton onClick={handleAudit} isLoading={isAuditing} />

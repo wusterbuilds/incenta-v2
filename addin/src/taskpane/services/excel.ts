@@ -54,31 +54,69 @@ export async function setupScenarioColumn(
   sourceCol: string,
   targetCol: string,
   scenarioName: string
-): Promise<void> {
+): Promise<string> {
   return Excel.run(async (context) => {
     const ws = context.workbook.worksheets.getItem("Stable Monthly");
 
-    // Read computed VALUES from the source column (not formulas)
     const sourceRange = ws.getRange(`${sourceCol}9:${sourceCol}130`);
     sourceRange.load("values");
+
+    const sourceColRange = ws.getRange(`${sourceCol}1:${sourceCol}1`);
+    sourceColRange.format.load("columnWidth");
+
+    // Read the source header's font color so we can match it
+    const sourceHeader = ws.getRange(`${sourceCol}9`);
+    sourceHeader.format.font.load("color");
+
     await context.sync();
 
-    // Write header
-    const values = sourceRange.values.map((row) => [...row]);
-    values[0] = [scenarioName]; // Row 9 = header
+    // Insert a fresh column at the target position, shifting existing data right
+    const insertRange = ws.getRange(`${targetCol}:${targetCol}`);
+    insertRange.insert(Excel.InsertShiftDirection.right);
+    await context.sync();
 
-    // Write all values to target column
+    // The inserted column now lives at targetCol
+    const values = sourceRange.values.map((row) => [...row]);
+    values[0] = [scenarioName];
+
     const targetRange = ws.getRange(`${targetCol}9:${targetCol}130`);
     targetRange.values = values;
 
-    // Bold the header
+    // Copy all formatting (number formats, fonts, fills, borders, alignment)
+    targetRange.copyFrom(sourceRange, Excel.RangeCopyType.formats);
+
+    // Match column width
+    const targetColRange = ws.getRange(`${targetCol}1:${targetCol}1`);
+    targetColRange.format.columnWidth = sourceColRange.format.columnWidth;
+
+    // Style the header — inherit color from source, bold it
     const header = ws.getRange(`${targetCol}9`);
     header.format.font.bold = true;
-    header.format.font.color = "#606165";
+    const srcColor = sourceHeader.format.font.color;
+    if (srcColor) {
+      header.format.font.color = srcColor;
+    }
+
+    // Magenta bounding box around the entire scenario
+    const MAGENTA = "#FF00FF";
+    const boxRange = ws.getRange(`${targetCol}9:${targetCol}130`);
+    const edges: Excel.BorderIndex[] = [
+      Excel.BorderIndex.edgeTop,
+      Excel.BorderIndex.edgeBottom,
+      Excel.BorderIndex.edgeLeft,
+      Excel.BorderIndex.edgeRight,
+    ];
+    for (const edge of edges) {
+      const border = boxRange.format.borders.getItem(edge);
+      border.style = Excel.BorderLineStyle.continuous;
+      border.color = MAGENTA;
+      border.weight = Excel.BorderWeight.thick;
+    }
 
     await context.sync();
 
     scenarioColumnUsed = targetCol;
+    return targetCol;
   });
 }
 
@@ -202,12 +240,25 @@ export async function writeCellChanges(changes: CellChange[]): Promise<void> {
 
   return Excel.run(async (context) => {
     const ranges: Excel.Range[] = [];
+    const sourceRanges: Excel.Range[] = [];
+
     for (const change of uniqueChanges) {
       const ws = context.workbook.worksheets.getItem(change.sheet);
       const cellRef = change.cell.includes("!") ? change.cell.split("!")[1] : change.cell;
       const range = ws.getRange(cellRef);
       range.load("values");
       ranges.push(range);
+
+      // Load the corresponding source cell (column F) to copy its number format
+      const rowMatch = cellRef.match(/\d+/);
+      if (rowMatch) {
+        const sourceRef = `F${rowMatch[0]}`;
+        const sourceRange = ws.getRange(sourceRef);
+        sourceRange.load("numberFormat");
+        sourceRanges.push(sourceRange);
+      } else {
+        sourceRanges.push(range);
+      }
     }
     await context.sync();
 
@@ -218,6 +269,11 @@ export async function writeCellChanges(changes: CellChange[]): Promise<void> {
 
     for (let i = 0; i < uniqueChanges.length; i++) {
       ranges[i].values = [[uniqueChanges[i].newValue]];
+      // Apply the number format from the source cell so values display correctly
+      const fmt = sourceRanges[i].numberFormat;
+      if (fmt && fmt[0][0] && fmt[0][0] !== "General") {
+        ranges[i].numberFormat = fmt;
+      }
     }
     await context.sync();
 
@@ -230,15 +286,14 @@ export async function undoLastChanges(): Promise<void> {
   if (!isApplied) return;
 
   return Excel.run(async (context) => {
-    // If we created a scenario column, clear the entire column
     if (scenarioColumnUsed) {
+      // Delete the entire inserted column, shifting data back left
       const ws = context.workbook.worksheets.getItem("Stable Monthly");
-      const colRange = ws.getRange(`${scenarioColumnUsed}9:${scenarioColumnUsed}130`);
-      colRange.clear(Excel.ClearApplyTo.all);
+      const colRange = ws.getRange(`${scenarioColumnUsed}:${scenarioColumnUsed}`);
+      colRange.delete(Excel.DeleteShiftDirection.left);
       await context.sync();
       scenarioColumnUsed = null;
     } else {
-      // Fallback: restore individual cells
       for (const change of changeSnapshot) {
         const ws = context.workbook.worksheets.getItem(change.sheet);
         const cellRef = change.cell.includes("!") ? change.cell.split("!")[1] : change.cell;

@@ -93,7 +93,8 @@ export type MessageType =
   | "audit_results"
   | "tradeoff_analysis"
   | "scenario_comparison"
-  | "cell_changelog";
+  | "cell_changelog"
+  | "net_change_summary";
 
 export interface ChatMessage {
   id: string;

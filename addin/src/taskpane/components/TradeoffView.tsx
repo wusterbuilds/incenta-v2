@@ -36,10 +36,10 @@ const styles = {
     background: colors.lightGray,
   },
   columnLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: 600 as const,
     textTransform: "uppercase" as const,
-    letterSpacing: 0.7,
+    letterSpacing: 0.6,
     color: colors.muted,
     marginBottom: 8,
   },
@@ -57,7 +57,7 @@ const styles = {
     color: colors.primary,
   },
   benefitValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 700 as const,
     color: "#4a8c5c",
     marginTop: 4,
@@ -76,7 +76,7 @@ const styles = {
     color: colors.primary,
   },
   netValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 700 as const,
   },
 };

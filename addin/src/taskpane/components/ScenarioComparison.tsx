@@ -68,7 +68,7 @@ const styles = {
     flex: 1,
   },
   metricLabel: {
-    fontWeight: 500 as const,
+    fontWeight: 600 as const,
     color: colors.primary,
   },
   baselineVal: {

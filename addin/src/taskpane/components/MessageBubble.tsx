@@ -11,6 +11,7 @@ import AuditResults from "./AuditResults";
 import IncentiveCard from "./IncentiveCard";
 import ScenarioComparison from "./ScenarioComparison";
 import ChangelogPanel from "./ChangelogPanel";
+import NetChangeSummary from "./NetChangeSummary";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -167,6 +168,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           onUndo={onUndo || (() => {})}
           onDismiss={onDismiss || (() => {})}
           isApplied={false}
+        />
+      </div>
+    );
+  }
+
+  if (message.type === "net_change_summary" && message.data) {
+    const scenarioData = message.data as ScenarioResult;
+    return (
+      <div style={styles.richContent}>
+        <NetChangeSummary
+          changes={scenarioData.changes}
+          returns={scenarioData.returns}
         />
       </div>
     );

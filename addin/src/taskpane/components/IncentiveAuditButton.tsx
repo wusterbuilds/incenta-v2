@@ -23,10 +23,6 @@ const styles: Record<string, React.CSSProperties> = {
     transition: "background 0.15s, transform 0.1s",
     letterSpacing: 0.3,
   },
-  icon: {
-    fontSize: 17,
-    lineHeight: 1,
-  },
   spinner: {
     width: 16,
     height: 16,
@@ -54,12 +50,8 @@ const IncentiveAuditButton: React.FC<IncentiveAuditButtonProps> = ({ onClick, is
         e.currentTarget.style.background = colors.warm;
       }}
     >
-      {isLoading ? (
-        <div style={styles.spinner} />
-      ) : (
-        <span style={styles.icon}>⚡</span>
-      )}
-      {isLoading ? "Analyzing…" : "Run Incentive Audit"}
+      {isLoading && <div style={styles.spinner} />}
+      {isLoading ? "Analyzing..." : "Run Incentive Audit"}
     </button>
     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
   </>

@@ -46,7 +46,7 @@ specific = {}
 
 # ===== Unit Mix =====
 um = "Unit Mix"
-specific[(um, "B4")] = "1234 Example Blvd, Anytown, CO"
+specific[(um, "B4")] = "1234 Quebec St, Denver, CO"
 specific[(um, "B5")] = 200   # total units
 
 # Scenario 1-4 unit counts (must sum to 200 for scenario 1)
@@ -187,7 +187,7 @@ specific[(st, "Q26")] = 400
 specific[(st, "Q27")] = 300
 
 # Property info
-specific[(st, "V15")] = "1234 Example Blvd, Anytown, CO"
+specific[(st, "V15")] = "1234 Quebec St, Denver, CO"
 
 # Income assumptions - percentages
 for c in ["G","I","K","M"]:
