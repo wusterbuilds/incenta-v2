@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+*.xlsx
+*.crt
+*.key
+.DS_Store
+.cache/
+*.log

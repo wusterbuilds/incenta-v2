@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Jurisdiction {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  level       String   // federal, state, county, city
+  stateCode   String?  @map("state_code")
+  fipsCode    String?  @map("fips_code")
+  geoBoundary Json?    @map("geo_boundary")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  programs  IncentiveProgram[]
+  marketData MarketData[]
+
+  @@map("jurisdictions")
+}
+
+model IncentiveProgram {
+  id               String   @id @default(uuid()) @db.Uuid
+  jurisdictionId   String   @map("jurisdiction_id") @db.Uuid
+  name             String
+  programCode      String   @map("program_code")
+  category         String   // tax_credit, abatement, grant, deduction, deferral
+  creditRate       Decimal? @map("credit_rate") @db.Decimal(6, 4)
+  calculationBasis String?  @map("calculation_basis")
+  description      String
+  effectiveDate    DateTime? @map("effective_date")
+  sunsetDate       DateTime? @map("sunset_date")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  jurisdiction      Jurisdiction        @relation(fields: [jurisdictionId], references: [id])
+  eligibilityRules  EligibilityRule[]
+  tradeoffs         TradeoffDefinition[]
+  proFormaImpacts   ProFormaImpact[]
+  stackingRulesAsA  StackingRule[]      @relation("ProgramA")
+  stackingRulesAsB  StackingRule[]      @relation("ProgramB")
+
+  @@map("incentive_programs")
+}
+
+model EligibilityRule {
+  id               String  @id @default(uuid()) @db.Uuid
+  programId        String  @map("program_id") @db.Uuid
+  ruleType         String  @map("rule_type") // property_type, building_age, unit_mix, energy, location, cost_threshold
+  fieldReference   String  @map("field_reference")
+  operator         String  // gte, lte, eq, in, between, exists
+  thresholdValue   Json    @map("threshold_value")
+  description      String
+  isHardRequirement Boolean @default(true) @map("is_hard_requirement")
+
+  program IncentiveProgram @relation(fields: [programId], references: [id])
+
+  @@map("eligibility_rules")
+}
+
+model TradeoffDefinition {
+  id                   String   @id @default(uuid()) @db.Uuid
+  programId            String   @map("program_id") @db.Uuid
+  tradeoffType         String   @map("tradeoff_type") // cost_increase, revenue_decrease, timeline_extension, compliance_cost
+  affectedCategory     String   @map("affected_category") // renovation, rent, hold_period, operating_expense
+  affectedProFormaCells String?  @map("affected_pro_forma_cells")
+  costMultiplier       Decimal? @map("cost_multiplier") @db.Decimal(6, 4)
+  fixedCost            Decimal? @map("fixed_cost") @db.Decimal(14, 2)
+  marketDataKey        String?  @map("market_data_key")
+  description          String
+
+  program IncentiveProgram @relation(fields: [programId], references: [id])
+
+  @@map("tradeoff_definitions")
+}
+
+model ProFormaImpact {
+  id                 String @id @default(uuid()) @db.Uuid
+  programId          String @map("program_id") @db.Uuid
+  impactType         String @map("impact_type") // sources_offset, expense_reduction, cash_flow_addition, basis_adjustment, exit_benefit
+  targetSection      String @map("target_section") // acquisition_closing, operating_expenses, cash_flow, exit
+  calculationFormula String @map("calculation_formula")
+  targetCells        String @map("target_cells")
+  timing             Json?
+
+  program IncentiveProgram @relation(fields: [programId], references: [id])
+
+  @@map("pro_forma_impacts")
+}
+
+model StackingRule {
+  id                    String  @id @default(uuid()) @db.Uuid
+  programAId            String  @map("program_a_id") @db.Uuid
+  programBId            String  @map("program_b_id") @db.Uuid
+  relationship          String  // compatible, incompatible, basis_reduction, partial
+  constraintDescription String  @map("constraint_description")
+  adjustmentFormula     String? @map("adjustment_formula")
+
+  programA IncentiveProgram @relation("ProgramA", fields: [programAId], references: [id])
+  programB IncentiveProgram @relation("ProgramB", fields: [programBId], references: [id])
+
+  @@map("stacking_rules")
+}
+
+model MarketData {
+  id             String @id @default(uuid()) @db.Uuid
+  jurisdictionId String @map("jurisdiction_id") @db.Uuid
+  dataType       String @map("data_type") // ami_levels, rent_comps, hvac_costs, construction_costs, tax_rates
+  year           Int
+  dataPayload    Json   @map("data_payload")
+
+  jurisdiction Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+
+  @@map("market_data")
+}
