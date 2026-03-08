@@ -2,7 +2,7 @@ import * as React from "react";
 import {
   ChatMessage,
   AuditResult,
-  IncentiveProgram,
+  AuditFlag,
   ScenarioResult,
   CellChange,
   ProFormaContext,
@@ -17,8 +17,9 @@ import {
   findNextScenarioColumn,
   setupScenarioColumn,
   readCellValues,
+  navigateToCell,
 } from "./services/excel";
-import { annotateApplied, annotatePreview, clearAllAnnotations } from "./services/cellAnnotator";
+import { annotateApplied, annotatePreview, clearAllAnnotations, highlightProblemCells } from "./services/cellAnnotator";
 import { sendChat, runAudit } from "./services/api";
 
 import "./App.css";
@@ -168,7 +169,6 @@ const App: React.FC = () => {
         }
       }
 
-      // Tell the backend to generate changes for the new column, not F
       const ctxForAudit = { ...ctx, scenarioColumn: targetCol };
 
       const sourceLabel =
@@ -182,17 +182,33 @@ const App: React.FC = () => {
         id: generateId(),
         role: "system",
         type: "text",
-        content: `${sourceLabel}: ${ctx.totalUnits} units, ${ctx.address}, $${(ctx.purchasePrice / 1e6).toFixed(1)}M purchase. Scenarios will write to column **${targetCol}**. Running audit...`,
+        content: `${sourceLabel}: ${ctx.totalUnits} units, ${ctx.address}, $${(ctx.purchasePrice / 1e6).toFixed(1)}M purchase. Running audit...`,
         timestamp: Date.now(),
       });
 
       const auditResult = await runAudit(ctxForAudit);
 
+      // Highlight problem cells in Excel
+      if (auditResult.problems.length > 0) {
+        const problemCells = auditResult.problems.flatMap((p) =>
+          p.affectedCells.map((c) => ({
+            sheet: c.sheet,
+            cell: c.cell,
+            comment: `${p.title}: ${p.description}`,
+          }))
+        );
+        try {
+          await highlightProblemCells(problemCells);
+        } catch {
+          // Not in Excel
+        }
+      }
+
       addMessage({
         id: generateId(),
         role: "assistant",
         type: "audit_results",
-        content: `Found ${auditResult.qualified.length} qualifying program(s) and ${auditResult.nearMiss.length} near-miss opportunity(ies).`,
+        content: `Found ${auditResult.problems.length} problem(s) and ${auditResult.opportunities.length} opportunity(ies).`,
         data: auditResult,
         timestamp: Date.now(),
       });
@@ -211,14 +227,12 @@ const App: React.FC = () => {
 
   const handleApplyScenario = React.useCallback(
     async (scenario: ScenarioResult) => {
-      // Read actual current values from column F for cells where oldValue is null
       let enrichedChanges = scenario.changes;
       try {
         const needsValue = scenario.changes.filter((c) => c.oldValue === null || c.oldValue === undefined);
         if (needsValue.length > 0) {
-          // Read from column F (base scenario) to get what the old value should be
           const baseRefs = needsValue.map((c) => {
-            const cellRef = c.cell.replace(/^[A-Z]+/, "F"); // Replace target column with F
+            const cellRef = c.cell.replace(/^[A-Z]+/, "F");
             return { sheet: c.sheet, cell: cellRef };
           });
           const values = await readCellValues(baseRefs);
@@ -267,9 +281,8 @@ const App: React.FC = () => {
 
     const targetCol = scenarioCol || "N";
 
-    // Step 1: Copy base column F to the new scenario column
     try {
-      const scenarioLabel = pendingScenario.name || "Incenta Scenario";
+      const scenarioLabel = pendingScenario.name || "Audit Scenario";
       await setupScenarioColumn("F", targetCol, scenarioLabel);
       addMessage({
         id: generateId(),
@@ -289,7 +302,6 @@ const App: React.FC = () => {
       });
     }
 
-    // Step 2: Write the incentive-adjusted values on top
     const deduped = new Map<string, CellChange>();
     for (const c of pendingScenario.changes) {
       deduped.set(`${c.sheet}!${c.cell}`, c);
@@ -312,7 +324,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Step 3: Annotate
     let annotationStatus = "";
     try {
       annotationStatus = await annotateApplied(pendingScenario.changes);
@@ -324,7 +335,7 @@ const App: React.FC = () => {
       id: generateId(),
       role: "assistant",
       type: "text",
-      content: `Written ${uniqueChanges.length} incentive adjustments to column **${targetCol}**.\n\n${annotationStatus}\n\nYour original column F is preserved. Here's the financial breakdown:`,
+      content: `Written ${uniqueChanges.length} adjustments to column **${targetCol}**.\n\n${annotationStatus}\n\nYour original column F is preserved. Here's the financial breakdown:`,
       timestamp: Date.now(),
     });
 
@@ -363,6 +374,32 @@ const App: React.FC = () => {
     setPendingScenario(null);
   }, [addMessage]);
 
+  const handleClickProblem = React.useCallback(
+    async (flag: AuditFlag) => {
+      if (flag.affectedCells.length === 0) return;
+
+      const target = flag.affectedCells[0];
+      try {
+        await navigateToCell(target.sheet, target.cell);
+      } catch {
+        // Not in Excel — no-op
+      }
+
+      try {
+        await highlightProblemCells(
+          flag.affectedCells.map((c) => ({
+            sheet: c.sheet,
+            cell: c.cell,
+            comment: `${flag.title}: ${flag.description}`,
+          }))
+        );
+      } catch {
+        // Not in Excel
+      }
+    },
+    []
+  );
+
   const handleDismiss = React.useCallback(async () => {
     try {
       await clearAllAnnotations();
@@ -378,14 +415,6 @@ const App: React.FC = () => {
       timestamp: Date.now(),
     });
   }, [addMessage]);
-
-  const handleExploreTradeoffs = React.useCallback(
-    (incentive: IncentiveProgram) => {
-      const prompt = `Tell me more about the tradeoffs for ${incentive.name}. What would I need to change in my pro forma to qualify?`;
-      handleSendMessage(prompt);
-    },
-    [handleSendMessage]
-  );
 
   return (
     <div style={styles.container}>
@@ -409,7 +438,7 @@ const App: React.FC = () => {
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
           onApplyScenario={handleApplyScenario}
-          onExploreTradeoffs={handleExploreTradeoffs}
+          onClickProblem={handleClickProblem}
           onApplyChanges={handleApplyChanges}
           onUndo={handleUndo}
           onDismiss={handleDismiss}

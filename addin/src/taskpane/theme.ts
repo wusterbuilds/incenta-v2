@@ -13,6 +13,9 @@ export const colors = {
   tradeoffBorder: "#606165",
   newItemBorder: "#727074",
   previewBorder: "#aea9a4",
+
+  problemBorder: "#c4735e",
+  opportunityBorder: "#6b9080",
 } as const;
 
 export const fonts = {

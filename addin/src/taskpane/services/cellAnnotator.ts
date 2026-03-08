@@ -137,6 +137,58 @@ export async function annotateApplied(changes: CellChange[]): Promise<string> {
   return parts.join(" ");
 }
 
+export async function highlightProblemCells(
+  cells: { sheet: string; cell: string; comment: string }[]
+): Promise<string> {
+  const errors: string[] = [];
+
+  for (const item of cells) {
+    try {
+      await Excel.run(async (context) => {
+        const ws = context.workbook.worksheets.getItem(item.sheet);
+        const cell = ws.getRange(stripSheetPrefix(item.cell));
+
+        const border = cell.format.borders.getItem("EdgeLeft");
+        border.style = "Continuous";
+        border.color = "#FF00FF";
+        border.weight = "Thick";
+
+        cell.format.fill.color = "#fff0ff";
+
+        await context.sync();
+      });
+    } catch (e) {
+      errors.push(`${item.sheet}!${item.cell}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    try {
+      await Excel.run(async (context) => {
+        const ws = context.workbook.worksheets.getItem(item.sheet);
+        const cell = ws.getRange(stripSheetPrefix(item.cell));
+        const text = `${COMMENT_PREFIX} Problem\n${item.comment}`;
+        context.workbook.comments.add(cell, text);
+        await context.sync();
+      });
+    } catch {
+      try {
+        await Excel.run(async (context) => {
+          const ws = context.workbook.worksheets.getItem(item.sheet);
+          const cell = ws.getRange(stripSheetPrefix(item.cell));
+          (cell as any).note = `${COMMENT_PREFIX} Problem\n${item.comment}`;
+          await context.sync();
+        });
+      } catch {
+        // skip comments
+      }
+    }
+  }
+
+  if (errors.length === 0) {
+    return `Highlighted ${cells.length} problem cell(s).`;
+  }
+  return `Highlighted ${cells.length - errors.length}/${cells.length} problem cell(s).`;
+}
+
 export async function clearAllAnnotations(): Promise<void> {
   try {
     await Excel.run(async (context) => {

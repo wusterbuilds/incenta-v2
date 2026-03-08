@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChatMessage, IncentiveProgram, ScenarioResult } from "../types";
+import { ChatMessage, AuditFlag, ScenarioResult } from "../types";
 import { colors, fonts } from "../theme";
 import MessageBubble from "./MessageBubble";
 
@@ -8,7 +8,7 @@ interface ChatPanelProps {
   onSendMessage: (text: string) => void;
   isLoading: boolean;
   onApplyScenario?: (scenario: ScenarioResult) => void;
-  onExploreTradeoffs?: (incentive: IncentiveProgram) => void;
+  onClickProblem?: (flag: AuditFlag) => void;
   onApplyChanges?: () => void;
   onUndo?: () => void;
   onDismiss?: () => void;
@@ -108,7 +108,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onSendMessage,
   isLoading,
   onApplyScenario,
-  onExploreTradeoffs,
+  onClickProblem,
   onApplyChanges,
   onUndo,
   onDismiss,
@@ -136,7 +136,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             key={msg.id}
             message={msg}
             onApplyScenario={onApplyScenario}
-            onExploreTradeoffs={onExploreTradeoffs}
+            onClickProblem={onClickProblem}
             onApplyChanges={onApplyChanges}
             onUndo={onUndo}
             onDismiss={onDismiss}
@@ -151,7 +151,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           style={styles.input}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about incentives..."
+          placeholder="Ask about your pro forma..."
           disabled={isLoading}
           onFocus={(e) => (e.currentTarget.style.borderColor = colors.warm)}
           onBlur={(e) => (e.currentTarget.style.borderColor = colors.lightGray)}
@@ -165,7 +165,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           disabled={!input.trim() || isLoading}
           title="Send"
         >
-          ▶
+          &#9654;
         </button>
       </form>
     </div>

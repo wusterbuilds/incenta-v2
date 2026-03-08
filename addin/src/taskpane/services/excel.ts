@@ -320,3 +320,18 @@ export function clearChangeLog(): void {
   changeSnapshot = [];
   isApplied = false;
 }
+
+export async function navigateToCell(sheet: string, cell: string): Promise<void> {
+  await Excel.run(async (context) => {
+    const ws = context.workbook.worksheets.getItem(sheet);
+    ws.activate();
+    await context.sync();
+  });
+
+  await Excel.run(async (context) => {
+    const ws = context.workbook.worksheets.getItem(sheet);
+    const range = ws.getRange(cell);
+    range.select();
+    await context.sync();
+  });
+}

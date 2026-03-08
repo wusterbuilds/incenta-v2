@@ -2,13 +2,12 @@ import * as React from "react";
 import {
   ChatMessage,
   AuditResult,
-  IncentiveProgram,
+  AuditFlag,
   ScenarioResult,
   CellChange,
 } from "../types";
 import { colors } from "../theme";
 import AuditResults from "./AuditResults";
-import IncentiveCard from "./IncentiveCard";
 import ScenarioComparison from "./ScenarioComparison";
 import ChangelogPanel from "./ChangelogPanel";
 import NetChangeSummary from "./NetChangeSummary";
@@ -16,7 +15,7 @@ import NetChangeSummary from "./NetChangeSummary";
 interface MessageBubbleProps {
   message: ChatMessage;
   onApplyScenario?: (scenario: ScenarioResult) => void;
-  onExploreTradeoffs?: (incentive: IncentiveProgram) => void;
+  onClickProblem?: (flag: AuditFlag) => void;
   onApplyChanges?: () => void;
   onUndo?: () => void;
   onDismiss?: () => void;
@@ -103,7 +102,7 @@ function formatText(text: string): React.ReactNode {
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   onApplyScenario,
-  onExploreTradeoffs,
+  onClickProblem,
   onApplyChanges,
   onUndo,
   onDismiss,
@@ -132,16 +131,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         <AuditResults
           data={message.data as AuditResult}
           onApplyScenario={onApplyScenario || (() => {})}
-          onExploreTradeoffs={onExploreTradeoffs || (() => {})}
+          onClickProblem={onClickProblem || (() => {})}
         />
-      </div>
-    );
-  }
-
-  if (message.type === "incentive_card" && message.data) {
-    return (
-      <div style={styles.richContent}>
-        <IncentiveCard incentive={message.data as IncentiveProgram} />
       </div>
     );
   }

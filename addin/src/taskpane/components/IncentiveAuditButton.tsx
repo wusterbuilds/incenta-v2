@@ -51,7 +51,7 @@ const IncentiveAuditButton: React.FC<IncentiveAuditButtonProps> = ({ onClick, is
       }}
     >
       {isLoading && <div style={styles.spinner} />}
-      {isLoading ? "Analyzing..." : "Run Incentive Audit"}
+      {isLoading ? "Auditing..." : "Run Pro Forma Audit"}
     </button>
     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
   </>

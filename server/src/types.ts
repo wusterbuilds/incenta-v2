@@ -29,31 +29,21 @@ export interface ProFormaContext {
   scenarioColumn: string;
 }
 
-export interface EligibilityGap {
-  ruleDescription: string;
-  currentValue: string;
-  requiredValue: string;
-  gapSeverity: "minor" | "moderate" | "major";
-}
+export type FlagType = "problem" | "opportunity";
 
-export interface TradeoffSummary {
-  type: string;
-  description: string;
-  costDelta: number;
-  affectedCells: string[];
-}
-
-export interface IncentiveProgramResult {
+export interface AuditFlag {
   id: string;
-  name: string;
-  jurisdiction: string;
-  category: string;
-  creditRate: number | null;
+  type: FlagType;
+  title: string;
   description: string;
-  estimatedValue: number;
-  qualificationStatus: "qualified" | "near_miss" | "not_applicable";
-  eligibilityGaps: EligibilityGap[];
-  tradeoffs: TradeoffSummary[];
+  affectedCells: { sheet: string; cell: string }[];
+  scenario?: ScenarioResult;
+}
+
+export interface AuditResult {
+  projectSummary: string;
+  problems: AuditFlag[];
+  opportunities: AuditFlag[];
 }
 
 export interface ScenarioReturns {
@@ -72,15 +62,6 @@ export interface ScenarioResult {
   incentives: string[];
   changes: CellChange[];
   returns: ScenarioReturns;
-}
-
-export interface AuditResult {
-  projectSummary: string;
-  qualified: IncentiveProgramResult[];
-  nearMiss: IncentiveProgramResult[];
-  notApplicable: IncentiveProgramResult[];
-  qualifiedScenario: ScenarioResult | null;
-  nearMissScenarios: ScenarioResult[];
 }
 
 export interface TradeoffResult {

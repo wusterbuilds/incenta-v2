@@ -33,40 +33,21 @@ export interface CellChange {
   incentiveName?: string;
 }
 
-export interface IncentiveProgram {
+export type FlagType = "problem" | "opportunity";
+
+export interface AuditFlag {
   id: string;
-  name: string;
-  jurisdiction: string;
-  category: string;
-  creditRate: number | null;
+  type: FlagType;
+  title: string;
   description: string;
-  estimatedValue: number;
-  qualificationStatus: "qualified" | "near_miss" | "not_applicable";
-  eligibilityGaps: EligibilityGap[];
-  tradeoffs: TradeoffSummary[];
-}
-
-export interface EligibilityGap {
-  ruleDescription: string;
-  currentValue: string;
-  requiredValue: string;
-  gapSeverity: "minor" | "moderate" | "major";
-}
-
-export interface TradeoffSummary {
-  type: string;
-  description: string;
-  costDelta: number;
-  affectedCells: string[];
+  affectedCells: { sheet: string; cell: string }[];
+  scenario?: ScenarioResult;
 }
 
 export interface AuditResult {
   projectSummary: string;
-  qualified: IncentiveProgram[];
-  nearMiss: IncentiveProgram[];
-  notApplicable: IncentiveProgram[];
-  qualifiedScenario: ScenarioResult | null;
-  nearMissScenarios: ScenarioResult[];
+  problems: AuditFlag[];
+  opportunities: AuditFlag[];
 }
 
 export interface ScenarioResult {
@@ -89,9 +70,7 @@ export interface ScenarioReturns {
 
 export type MessageType =
   | "text"
-  | "incentive_card"
   | "audit_results"
-  | "tradeoff_analysis"
   | "scenario_comparison"
   | "cell_changelog"
   | "net_change_summary";
@@ -101,6 +80,6 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   type: MessageType;
   content: string;
-  data?: AuditResult | IncentiveProgram | ScenarioResult | CellChange[];
+  data?: AuditResult | ScenarioResult | CellChange[];
   timestamp: number;
 }
