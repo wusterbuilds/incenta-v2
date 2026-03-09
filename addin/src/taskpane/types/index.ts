@@ -68,18 +68,32 @@ export interface ScenarioReturns {
   totalIncentiveValue: number;
 }
 
+export interface TranslationSummarySection {
+  section: string;
+  fields: { label: string; value: string; cell: string }[];
+}
+
+export interface TranslationResult {
+  filename: string;
+  fieldsMapped: number;
+  changes: CellChange[];
+  summary: TranslationSummarySection[];
+}
+
 export type MessageType =
   | "text"
   | "audit_results"
   | "scenario_comparison"
   | "cell_changelog"
-  | "net_change_summary";
+  | "net_change_summary"
+  | "proforma_upload"
+  | "translation_result";
 
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
   type: MessageType;
   content: string;
-  data?: AuditResult | ScenarioResult | CellChange[];
+  data?: AuditResult | ScenarioResult | CellChange[] | TranslationResult;
   timestamp: number;
 }

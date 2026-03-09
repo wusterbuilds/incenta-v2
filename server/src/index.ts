@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import agentRoutes from "./routes/agent";
 import auditRoutes from "./routes/audit";
+import translateRoutes from "./routes/translate";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -24,6 +25,7 @@ app.use(express.json({ limit: "10mb" }));
 
 app.use("/agent", agentRoutes);
 app.use("/agent", auditRoutes);
+app.use("/agent", translateRoutes);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
