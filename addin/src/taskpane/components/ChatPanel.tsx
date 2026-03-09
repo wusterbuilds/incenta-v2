@@ -6,6 +6,7 @@ import MessageBubble from "./MessageBubble";
 interface ChatPanelProps {
   messages: ChatMessage[];
   onSendMessage: (text: string) => void;
+  onFileUpload?: (file: File) => void;
   isLoading: boolean;
   onApplyScenario?: (scenario: ScenarioResult) => void;
   onClickProblem?: (flag: AuditFlag) => void;
@@ -81,6 +82,21 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     transition: "background 0.15s",
   },
+  uploadButton: {
+    width: 34,
+    height: 34,
+    borderRadius: "50%",
+    border: `1px solid ${colors.lightGray}`,
+    background: colors.offWhite,
+    color: colors.secondary,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    fontSize: 15,
+    cursor: "pointer",
+    transition: "background 0.15s, border-color 0.15s",
+  },
 };
 
 const TypingIndicator: React.FC = () => (
@@ -106,6 +122,7 @@ const TypingIndicator: React.FC = () => (
 const ChatPanel: React.FC<ChatPanelProps> = ({
   messages,
   onSendMessage,
+  onFileUpload,
   isLoading,
   onApplyScenario,
   onClickProblem,
@@ -115,6 +132,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 }) => {
   const [input, setInput] = React.useState("");
   const bottomRef = React.useRef<HTMLDivElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -126,6 +144,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     if (!trimmed || isLoading) return;
     onSendMessage(trimmed);
     setInput("");
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onFileUpload) {
+      onFileUpload(file);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -147,6 +175,25 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       <form onSubmit={handleSubmit} style={styles.inputBar}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          style={{ display: "none" }}
+          onChange={handleFileChange}
+        />
+        <button
+          type="button"
+          style={{
+            ...styles.uploadButton,
+            opacity: isLoading ? 0.5 : 1,
+          }}
+          disabled={isLoading}
+          title="Upload pro forma"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          &#128206;
+        </button>
         <input
           style={styles.input}
           value={input}

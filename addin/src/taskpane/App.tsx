@@ -6,6 +6,7 @@ import {
   ScenarioResult,
   CellChange,
   ProFormaContext,
+  TranslationResult,
 } from "./types";
 import { colors, fonts } from "./theme";
 import ChatPanel from "./components/ChatPanel";
@@ -18,9 +19,10 @@ import {
   setupScenarioColumn,
   readCellValues,
   navigateToCell,
+  populateTemplate,
 } from "./services/excel";
 import { annotateApplied, annotatePreview, clearAllAnnotations, highlightProblemCells } from "./services/cellAnnotator";
-import { sendChat, runAudit } from "./services/api";
+import { sendChat, runAudit, translateProForma } from "./services/api";
 
 import "./App.css";
 
@@ -82,6 +84,15 @@ const App: React.FC = () => {
       } catch {
         // Not running in Excel
       }
+
+      addMessage({
+        id: generateId(),
+        role: "assistant",
+        type: "text",
+        content:
+          "Welcome to Incenta. Upload a pro forma to translate it into this template, or click **Run Pro Forma Audit** to analyze the current data.",
+        timestamp: Date.now(),
+      });
     })();
   }, []);
 
@@ -117,6 +128,83 @@ const App: React.FC = () => {
       }
     },
     [messages, proFormaContext, addMessage]
+  );
+
+  const handleFileUpload = React.useCallback(
+    async (file: File) => {
+      addMessage({
+        id: generateId(),
+        role: "user",
+        type: "proforma_upload",
+        content: file.name,
+        timestamp: Date.now(),
+      });
+      setIsLoading(true);
+
+      try {
+        const result = await translateProForma(file);
+
+        try {
+          await populateTemplate(result.changes);
+        } catch {
+          // Not in Excel
+        }
+
+        try {
+          const ctx = await readProjectContext();
+          setProFormaContext(ctx);
+          const nextCol = await findNextScenarioColumn();
+          setScenarioCol(nextCol);
+        } catch {
+          setProFormaContext({
+            address: "1234 Quebec St, Denver, CO",
+            totalUnits: 200,
+            purchasePrice: 7_000_000,
+            renovationBudget: 600_000,
+            rents: [
+              { unitType: "Studio", rent: 1400, units: 140, sizeSf: 350 },
+              { unitType: "1BR", rent: 1800, units: 60, sizeSf: 550 },
+            ],
+            expenses: {
+              taxes: 125_000,
+              utilities: 500_000,
+              payroll: 200_000,
+              propertyManagement: 90_000,
+            },
+            financing: {
+              loanAmount: 5_250_000,
+              interestRate: 0.06,
+              ltv: 0.75,
+              amortYears: 200,
+              ioMonths: 24,
+            },
+            exitYear: 5,
+            exitCapRate: 0.055,
+            scenarioColumn: "F",
+          });
+        }
+
+        addMessage({
+          id: generateId(),
+          role: "assistant",
+          type: "translation_result",
+          content: `Translated "${result.filename}" — ${result.fieldsMapped} fields mapped to your template.`,
+          data: result,
+          timestamp: Date.now(),
+        });
+      } catch {
+        addMessage({
+          id: generateId(),
+          role: "assistant",
+          type: "text",
+          content: "Failed to translate the pro forma. Make sure the backend server is running on port 4000.",
+          timestamp: Date.now(),
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [addMessage]
   );
 
   const handleAudit = React.useCallback(async () => {
@@ -436,6 +524,7 @@ const App: React.FC = () => {
         <ChatPanel
           messages={messages}
           onSendMessage={handleSendMessage}
+          onFileUpload={handleFileUpload}
           isLoading={isLoading}
           onApplyScenario={handleApplyScenario}
           onClickProblem={handleClickProblem}

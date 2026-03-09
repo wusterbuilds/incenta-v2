@@ -5,12 +5,14 @@ import {
   AuditFlag,
   ScenarioResult,
   CellChange,
+  TranslationResult,
 } from "../types";
 import { colors } from "../theme";
 import AuditResults from "./AuditResults";
 import ScenarioComparison from "./ScenarioComparison";
 import ChangelogPanel from "./ChangelogPanel";
 import NetChangeSummary from "./NetChangeSummary";
+import TranslationSummary from "./TranslationSummary";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -111,6 +113,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     return <div style={styles.systemBubble}>{message.content}</div>;
   }
 
+  if (message.type === "proforma_upload") {
+    return (
+      <div style={styles.userBubble}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 16 }}>&#128196;</span>
+          <span>{message.content}</span>
+        </div>
+        <div style={{ ...styles.timestamp, textAlign: "right" as const }}>
+          {new Date(message.timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </div>
+      </div>
+    );
+  }
+
   if (message.role === "user") {
     return (
       <div style={styles.userBubble}>
@@ -160,6 +179,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           onDismiss={onDismiss || (() => {})}
           isApplied={false}
         />
+      </div>
+    );
+  }
+
+  if (message.type === "translation_result" && message.data) {
+    return (
+      <div style={styles.richContent}>
+        <TranslationSummary data={message.data as TranslationResult} />
       </div>
     );
   }

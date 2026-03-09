@@ -72,6 +72,18 @@ export interface TradeoffResult {
   description: string;
 }
 
+export interface TranslationSummarySection {
+  section: string;
+  fields: { label: string; value: string; cell: string }[];
+}
+
+export interface TranslationResult {
+  filename: string;
+  fieldsMapped: number;
+  changes: CellChange[];
+  summary: TranslationSummarySection[];
+}
+
 export interface Message {
   role: "user" | "assistant";
   content: string;

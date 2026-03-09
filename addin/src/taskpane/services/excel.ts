@@ -321,6 +321,24 @@ export function clearChangeLog(): void {
   isApplied = false;
 }
 
+export async function populateTemplate(changes: CellChange[]): Promise<void> {
+  const deduped = new Map<string, CellChange>();
+  for (const change of changes) {
+    deduped.set(`${change.sheet}!${change.cell}`, change);
+  }
+  const uniqueChanges = Array.from(deduped.values());
+
+  return Excel.run(async (context) => {
+    for (const change of uniqueChanges) {
+      const ws = context.workbook.worksheets.getItem(change.sheet);
+      const cellRef = change.cell.includes("!") ? change.cell.split("!")[1] : change.cell;
+      const range = ws.getRange(cellRef);
+      range.values = [[change.newValue]];
+    }
+    await context.sync();
+  });
+}
+
 export async function navigateToCell(sheet: string, cell: string): Promise<void> {
   await Excel.run(async (context) => {
     const ws = context.workbook.worksheets.getItem(sheet);

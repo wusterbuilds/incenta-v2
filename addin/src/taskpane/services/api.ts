@@ -1,4 +1,4 @@
-import { ChatMessage, ProFormaContext, AuditResult } from "../types";
+import { ChatMessage, ProFormaContext, AuditResult, TranslationResult } from "../types";
 
 const BASE_URL = "https://localhost:4000";
 
@@ -45,4 +45,18 @@ export async function runAudit(
   proFormaContext: ProFormaContext
 ): Promise<AuditResult> {
   return request<AuditResult>("/agent/audit", { proFormaContext });
+}
+
+export async function translateProForma(file: File): Promise<TranslationResult> {
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/agent/translate`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    throw new Error(`API error ${res.status}: ${res.statusText}`);
+  }
+  return res.json();
 }
